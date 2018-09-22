@@ -1,0 +1,4 @@
+﻿  Lab1_Flops.cpp
+c:\users\jhard\source\repos\lab1_flops\lab1_flops\lab1_flops.cpp(15): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\jhard\source\repos\lab1_flops\lab1_flops\lab1_flops.cpp(16): warning C4305: 'initializing': truncation from 'double' to 'float'
+  Lab1_Flops.vcxproj -> C:\Users\jhard\source\repos\Lab1_Flops\Debug\Lab1_Flops.exe
