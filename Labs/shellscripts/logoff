@@ -1,0 +1,11 @@
+echo Do you really want to log off?
+echo Input y for yes n for no
+read answer
+
+if test -z "$answer" # -z checks if the string is empty
+then
+    echo "I am glad you are staying"
+else
+    echo "Goodbye"
+    exit
+fi
