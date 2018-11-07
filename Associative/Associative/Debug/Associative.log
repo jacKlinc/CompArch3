@@ -1,2 +1,3 @@
 ﻿  Associative.cpp
-  Associative.vcxproj -> C:\Users\jhard\Documents\CompArch3\Associative\Debug\Associative.exe
+c:\users\jhard\comparch3\associative\associative\associative.cpp(65): warning C4804: '<=': unsafe use of type 'bool' in operation
+  Associative.vcxproj -> C:\Users\jhard\CompArch3\Associative\Debug\Associative.exe
