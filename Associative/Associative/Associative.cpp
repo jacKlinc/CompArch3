@@ -1,127 +1,119 @@
-// FormalElement3.cpp Associative
-// Christopher O' Connor
-// 2/11/2018
+/*
+*****************************************************
+Computer Architecture 3 Formal Element Cache Simulator
+ 
+ Fully Associative Cache
+
+ 32-bit CPU Addr, 8-bit data bus, 4 Byte data lines, 64kB data cache
+
+ Written in VS Studio 2017 by Jack Harding
+ 08/11/2018
+*****************************************************
+*/
 
 #include "pch.h"
 
 struct cacheEntry {
-	unsigned int FullAddr;
-	bool ValidFlag; // valid flag indicating entry is valid
-	bool LRUFlag;   //least recently used
+	unsigned int fAddr;
+	bool validFlag;																		// is entry valid
+	bool LRUFlag;																		// least recently used
 	char data[4];
 };
 
 cacheEntry way0[16384];
+string lineSel;	
+ifstream myAddr("testAddresses.txt");
 
-unsigned short CPUUppr;
+unsigned int CPUAddr;																	// full 32-bit addr
+unsigned short CPUUppr, hits = 0, misses = 0, setNo = 0, counter = 0;					// tag addr, hits, misses counter, set no., counter for index
 unsigned char byteNo;
-int hitDetect = 0, hits = 0, searchCount = 0, counter = 0, fullUp=0, misses=0;
+bool isHit = 0, isFull = 0;																// hit occurs, cache is full
 
 int main()
 {
-	
-	string addrString;
-	unsigned int CPUAddr;
-	ifstream Input("testAddresses.txt");
-
 	cout << "Fully Associative Cache Simulator\n\n";
 
-	for (int i = 0; i <= 16384; i++){ // initialising flags
-		way0[i].ValidFlag = 0;
+	for (int i = 0; i <= 16384; i++){													// init flags
+		way0[i].validFlag = 0;
 		way0[i].LRUFlag = 1;
 	}
 
-	if (Input.is_open()){
-		while (getline(Input, addrString))		{
-			stringstream blah(addrString);
-			blah >> hex >> CPUAddr;
-			CPUUppr = (CPUAddr & 0xffff0000) >> 16; // bit shifting by 16 and and'ing CPU address with 0xffff0000 to get upper part of CPU address
-			byteNo = CPUAddr & 3;
-			searchCount = 0; 
-			hitDetect = 0; // used this to detect if a hit occured
-			//cout << "Full Addr: 0x" << hex << CPUAddr;
+	if (myAddr.is_open()){
+		while (getline(myAddr, lineSel))		{
+			stringstream tempS(lineSel);												// selects line
+			tempS >> hex >> CPUAddr;													// outputs string to CPUAddr in hex
+			CPUUppr = (CPUAddr & 0xffff0000) >> 16;										// bit shift 16, and CPU address with 0xffff0000, get upper CPU addr
+			byteNo = CPUAddr & 3;														// anded with 3 for byte no.
 
-			if (fullUp == 0) {
-				while (searchCount <= counter)	{
-					if ((way0[searchCount].FullAddr == CPUAddr) && (way0[searchCount].ValidFlag == 1)) // hit can only occur if the  full address and the cpu adress match
-					{
+			if (!isFull) {																// is cache full
+				while (setNo <= counter) {												// used when is not full to search
+					if ((way0[setNo].fAddr == CPUAddr) && (way0[setNo].validFlag == 1)){ // hit occurs when addr match and entry valid
+						string* pByte = (string*)byteNo;								// typecasts the byteNo to printed
 						cout << "Full Addr: 0x" << hex << CPUAddr;
-						cout << "     Hit:  0x" << hex << CPUUppr << endl;
-						hits = hits + 1; // incrementing hit count
-						hitDetect = 1; // using hitDetect as a flag so that the progrm knows that no hits were found and a miss occured
+						cout << "     Hit:    0x" << hex << CPUUppr << setNo << "    " << endl; // formatted correctly
+						hits++;															// hit counter incremeneted
+						isHit = true;													// a hit is detected
 					}
-					searchCount = searchCount + 1;
+					setNo++;															// must be incremented 
 				}
-				// setting up writing to cache, operates on FIFO system
-				if (hitDetect == 0){ // only works if there were no hits
-					if (counter == 0) // used for the instance when an address needs to be stored in the first location
-					{
-						way0[counter].FullAddr = CPUAddr; // storing the address
-						way0[counter].ValidFlag = 1; // setting valid flag to 1
-						way0[counter].LRUFlag = 0;   //MOST Recently Use, not particularly need but it is there
-						counter = counter + 1; // inrementing counter to account for last location used for storage
+				if (!isHit){															// miss 
+					if (counter == 0) {													// first location of cache
+						way0[counter].fAddr = CPUAddr;									// stores addr
+						way0[counter].validFlag = 1;									// is valid
+						way0[counter].LRUFlag = 0;										// most recently used when LRU=0
+						counter++;														// inrementing counter for last loc
 					}
-
-					else if (0 < counter <= 16384) {// used in the instance 
-						for (int i = counter;i > 0; i--) // iterating through old addresses
-						{
-							way0[i] = way0[i - 1]; // moving old addresses forward
+					else  {																// when not at first addr 
+						for (int i = counter;i > 0; i--) {								// iterating through old addr
+							way0[i] = way0[i - 1];										// moving forward one element
 							way0[i].LRUFlag = 1;
 						}
-						way0[0].FullAddr = CPUAddr; // storing most recent address into first slot
-						way0[0].ValidFlag = 1;		//setting valid flag to 1
-						way0[0].LRUFlag = 0;		//MOST Recently Use
+						way0[0].fAddr = CPUAddr;										// storing addr in way
+						way0[0].validFlag = 1;		
+						way0[0].LRUFlag = 0;		
+						string* pByte = (string*)byteNo;
 						cout << "Full Addr: 0x" << hex << CPUAddr;
-						cout << "     Miss: 0x" << hex << CPUUppr << endl;
-						counter = counter + 1;		// incrementing Counter
-						misses = misses + 1;
-						if (counter == 16384)
-						{
-							fullUp = 1; // indicates if the associative cache has stored the most CPU addresses it can without replacing them
-						}
+						cout << "     Miss:   0x" << hex << CPUUppr << setNo << "    " << endl;
+						counter++;		
+						misses++;														// miss occurs
+						if (counter == 16384)											// cache capacity=16384
+							isFull = true;												// cache is full
 					}
 				}
 			}
-
-			else { // cache has now stored the most amount of CPU addresses that it can with replacing others
-				for (int i = 0; i < 16384; i++) // no longer using searchount as all cache entries have relevant addresses
-				{
-					if ((way0[i].FullAddr == CPUAddr) && (way0[i].ValidFlag == 1)) // hit can only occur if the  full address and the cpu adress match
-					{
+			else {																		// cache full
+				for (int i = 0; i < 16384; i++) {										// not using setNo, all cache entries have usable addr
+					if ((way0[i].fAddr == CPUAddr) && (way0[i].validFlag == 1)) {
+						string* pByte = (string*)byteNo;
 						cout << "Full Addr: 0x" << hex << CPUAddr;
-						cout << "     Hit:  0x" << hex << CPUUppr << endl;
-						hits = hits + 1; // incrementing hit count
-						hitDetect = 1; // using hitDetect as a flag so that the progrm knows that no hits were found and a miss occured
+						cout << "     Hit:    0x" << hex << CPUUppr << setNo << "    " << endl;
+						hits++;															// hit occurs
+						isHit = true;													// prog knows a hit happened
 					}
 
-					else if (hitDetect == 0)
-					{
-						for (int i = 16384;i > 0; i--)
-						{
-							way0[i] = way0[i - 1]; //shifting all adresses by one address space
+					else {																// miss
+						for (int i = 16384; i > 0; i--) {
+							way0[i] = way0[i - 1];										// moving all addrby one element
 							way0[i].LRUFlag = 1;
 						}
-						way0[0].FullAddr = CPUAddr;
-						way0[0].ValidFlag = 1;
-						way0[0].LRUFlag = 0;   //MOST Recently Use
+						way0[0].fAddr = CPUAddr;
+						way0[0].validFlag = 1;
+						way0[0].LRUFlag = 0;											// most recently used (FIFO)
+						string* pByte = (string*)byteNo;
 						cout << "Full Addr: 0x" << hex << CPUAddr;
-						cout << "Miss: 0x" << hex << CPUUppr << endl;
-						misses = misses + 1;
+						cout << "     Miss:   0x" << hex << CPUUppr << setNo << "    " << endl;
+						misses++;
 					}
 				}
 			}
-			//cout << "        " << hits << "             " << misses << "\n";
 		}
-		Input.close();
+		myAddr.close();																	// closes file when done
 	}
-
 	else
-	{
-		cout << "Unable to openfile";
-	}
+		cout << "\nCan't open file\n";													// error with file
 
 	cout << "\nTotal Hits:   " << dec << hits << endl;
-	cout << "Total Misses: " << dec << misses << endl;
+	cout << "Total Misses: " << dec << misses << endl;									// must be dec for values > 9
 
 	system("pause");
 	return 0;
